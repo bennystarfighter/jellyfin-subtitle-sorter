@@ -7,45 +7,46 @@ using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 
-namespace Jellyfin.Plugin.Template;
+#pragma warning disable CS1591
+#pragma warning disable SA1111
+#pragma warning disable SA1507
 
-/// <summary>
-/// The main plugin.
-/// </summary>
-public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
+namespace Jellyfin.Plugin.SubtitleSorter
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Plugin"/> class.
+    /// The main plugin.
     /// </summary>
-    /// <param name="applicationPaths">Instance of the <see cref="IApplicationPaths"/> interface.</param>
-    /// <param name="xmlSerializer">Instance of the <see cref="IXmlSerializer"/> interface.</param>
-    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
-        : base(applicationPaths, xmlSerializer)
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
-        Instance = this;
-    }
-
-    /// <inheritdoc />
-    public override string Name => "Template";
-
-    /// <inheritdoc />
-    public override Guid Id => Guid.Parse("eb5d7894-8eef-4b36-aa6f-5d124e828ce1");
-
-    /// <summary>
-    /// Gets the current plugin instance.
-    /// </summary>
-    public static Plugin? Instance { get; private set; }
-
-    /// <inheritdoc />
-    public IEnumerable<PluginPageInfo> GetPages()
-    {
-        return new[]
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Plugin"/> class.
+        /// </summary>
+        /// <param name="applicationPaths">Instance of the <see cref="IApplicationPaths"/> interface.</param>
+        /// <param name="xmlSerializer">Instance of the <see cref="IXmlSerializer"/> interface.</param>
+        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
+            : base(applicationPaths, xmlSerializer)
         {
-            new PluginPageInfo
-            {
-                Name = this.Name,
-                EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace)
-            }
-        };
+            Instance = this;
+        }
+
+        /// <inheritdoc />
+        public override string Name => "Subtitle Sorter";
+
+        /// <inheritdoc />
+        public override Guid Id => Guid.Parse("e1f630f5-6605-43be-96d8-d89a39c4d946");
+
+        /// <inheritdoc />
+        public override string Description => "Allows one to set filters and rules to properly detect subtitles.";
+
+        /// <summary>
+        /// Gets the current plugin instance.
+        /// </summary>
+        public static Plugin? Instance { get; private set; }
+
+        /// <inheritdoc />
+        public IEnumerable<PluginPageInfo> GetPages()
+        {
+            return new[] { new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace) } };
+        }
     }
 }
