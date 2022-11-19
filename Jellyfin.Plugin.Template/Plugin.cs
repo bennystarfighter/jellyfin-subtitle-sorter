@@ -1,23 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
-using Jellyfin.Plugin.Template.Configuration;
+using Jellyfin.Plugin.SubtitleSorter.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable CS0162
@@ -74,39 +72,18 @@ namespace Jellyfin.Plugin.SubtitleSorter
 
     public class SubtitleSorter : ILibraryPostScanTask
     {
-        private readonly ILibraryMonitor _libraryMonitor;
         private readonly ILibraryManager _libraryManager;
-        private readonly ISubtitleManager _subtitleManager;
-        private readonly IMediaSourceManager _mediaSourceManager;
         private readonly ILogger<SubtitleSorter> _logger;
         private readonly IFileSystem _fileSystem;
 
         public SubtitleSorter(
-            ILibraryMonitor libraryMonitor,
             ILibraryManager libraryManager,
             ILoggerFactory loggerFactory,
-            IFileSystem fileSystem,
-            ISubtitleManager subtitleManager,
-            IMediaSourceManager mediaSourceManager)
+            IFileSystem fileSystem)
         {
-            _libraryMonitor = libraryMonitor;
             _libraryManager = libraryManager;
             _logger = loggerFactory.CreateLogger<SubtitleSorter>();
             _fileSystem = fileSystem;
-            _subtitleManager = subtitleManager;
-            _mediaSourceManager = mediaSourceManager;
-        }
-
-        private struct Filter
-        {
-            public string _identifier;
-            public string _locationFilter;
-
-            public Filter(string identifier, string locationFilter)
-            {
-                _identifier = identifier;
-                _locationFilter = locationFilter;
-            }
         }
 
         private const bool DebugMode = true;
@@ -130,14 +107,14 @@ namespace Jellyfin.Plugin.SubtitleSorter
             var movieQuery = new InternalItemsQuery { IncludeItemTypes = new[] { BaseItemKind.Movie }, IsVirtualItem = false, OrderBy = new List<(string, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
             var allMovies = _libraryManager.GetItemList(movieQuery, false)
                 .Select(m => m as MediaBrowser.Controller.Entities.Movies.Movie).ToList();
-            _logger.LogInformation("Found [{0}] eligible movies.", allMovies.Count);
+            _logger.LogInformation("Found [{AllMoviesCount}] eligible movies", allMovies.Count);
 
             // Find Episodes
             _logger.LogInformation("Finding Episodes");
             var episodeQuery = new InternalItemsQuery { IncludeItemTypes = new[] { BaseItemKind.Episode }, IsVirtualItem = false, OrderBy = new List<(string, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
             var allEpisodes = _libraryManager.GetItemList(episodeQuery, false)
                 .Select(m => m as MediaBrowser.Controller.Entities.TV.Episode).ToList();
-            _logger.LogInformation("Found [{0}] eligible episodes.", allEpisodes.Count);
+            _logger.LogInformation("Found [{AllEpisodesCount}] eligible episodes", allEpisodes.Count);
 
             int objectsFound = allMovies.Count + allEpisodes.Count;
             var completedCount = 0;
@@ -159,15 +136,11 @@ namespace Jellyfin.Plugin.SubtitleSorter
                 {
                     try
                     {
-                        if (!RunSorter(movie, filter))
-                        {
-                            continue;
-                        }
+                        RunSorter(movie, filter);
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("Failure during sorting: {0}", e);
-                        continue;
+                        _logger.LogError("Failure during sorting: {Error}", e);
                     }
                 }
 
@@ -194,15 +167,11 @@ namespace Jellyfin.Plugin.SubtitleSorter
                 {
                     try
                     {
-                        if (!RunSorter(episode, filter))
-                        {
-                            continue;
-                        }
+                        RunSorter(episode, filter);
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("Failure during sorting: {0}", e);
-                        continue;
+                        _logger.LogError("Failure during sorting: {Error}", e);
                     }
                 }
 
@@ -215,10 +184,12 @@ namespace Jellyfin.Plugin.SubtitleSorter
             return Task.CompletedTask;
         }
 
+        /*
         private string RemoveExtensionFromPath(string input, string extension)
         {
             return input.EndsWith(extension) ? input[..input.LastIndexOf(extension, StringComparison.Ordinal)] : input;
         }
+        */
 
         private void CopySubtitleFile(string fileToCopy, string newFilePath)
         {
@@ -237,12 +208,12 @@ namespace Jellyfin.Plugin.SubtitleSorter
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(ex, "Error copying subtitle file {0}. Error: {1}", fileToCopy, e.ToString());
+                        _logger.LogError(ex, "Error copying subtitle file {File}. Error: {Error}", fileToCopy, e.ToString());
                     }
                 }
                 else
                 {
-                    _logger.LogError(ex, "Error creating subtitle symbolic link {0}. Error: {1}", fileToCopy, ex.ToString());
+                    _logger.LogError(ex, "Error creating subtitle symbolic link {Link}. Error: {Error}", fileToCopy, ex.ToString());
                 }
             }
         }
@@ -255,11 +226,11 @@ namespace Jellyfin.Plugin.SubtitleSorter
             return subtitlesLocation;
         }
 
-        private bool RunSorter(BaseItem item, Filter filter)
+        private void RunSorter(BaseItem item, Filter filter)
         {
             if (!item.Path.Contains(filter._identifier, StringComparison.Ordinal))
             {
-                return false;
+                return;
             }
 
             string subtitlesLocation = ProcessLocationFilter(item, filter._locationFilter);
@@ -284,15 +255,13 @@ namespace Jellyfin.Plugin.SubtitleSorter
 
                 if (DebugMode)
                 {
-                    _logger.LogInformation("Sub: {0}", subFile.FullName);
-                    _logger.LogInformation("New sub: {0}", newSubFile);
+                    _logger.LogInformation("Sub: {SubFile}", subFile.FullName);
+                    _logger.LogInformation("New sub: {NewSubFile}", newSubFile);
                 }
 
                 CopySubtitleFile(subFile.FullName, newSubFile);
                 item.ChangedExternally();
             }
-
-            return true;
         }
     }
 }
