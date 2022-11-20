@@ -1,24 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Jellyfin.Data.Enums;
-using Jellyfin.Plugin.SubtitleSorter.Configuration;
-using MediaBrowser.Common.Configuration;
-using MediaBrowser.Common.Plugins;
-using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.IO;
-using MediaBrowser.Model.Plugins;
-using MediaBrowser.Model.Querying;
-using MediaBrowser.Model.Serialization;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-
 #pragma warning disable CS0162
 #pragma warning disable CS1591
 #pragma warning disable SA1111
@@ -34,9 +13,32 @@ using Newtonsoft.Json;
 
 namespace Jellyfin.Plugin.SubtitleSorter
 {
+    using System.Diagnostics.CodeAnalysis;
+
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Globalization;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Jellyfin.Data.Enums;
+    using Jellyfin.Plugin.SubtitleSorter.Configuration;
+    using MediaBrowser.Common.Configuration;
+    using MediaBrowser.Common.Plugins;
+    using MediaBrowser.Controller.Entities;
+    using MediaBrowser.Controller.Library;
+    using MediaBrowser.Model.IO;
+    using MediaBrowser.Model.Plugins;
+    using MediaBrowser.Model.Querying;
+    using MediaBrowser.Model.Serialization;
+    using Microsoft.Extensions.Logging;
+
     /// <summary>
     /// The main plugin.
     /// </summary>
+    [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1309:Field names should not begin with underscore")]
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, ILibraryPostScanTask
     {
         /*
@@ -66,9 +68,9 @@ namespace Jellyfin.Plugin.SubtitleSorter
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ILibraryManager libraryManager, ILoggerFactory loggerFactory, IFileSystem fileSystem)
             : base(applicationPaths, xmlSerializer)
         {
-            _libraryManager = libraryManager;
-            _logger = loggerFactory.CreateLogger<Plugin>();
-            _fileSystem = fileSystem;
+            this._libraryManager = libraryManager;
+            this._logger = loggerFactory.CreateLogger<Plugin>();
+            this._fileSystem = fileSystem;
             Instance = this;
         }
 
@@ -81,11 +83,21 @@ namespace Jellyfin.Plugin.SubtitleSorter
         /// <inheritdoc />
         public override string Description => "Lets you set filters to properly copy subtitles to the appropriate location.";
 
+        private readonly ILibraryManager _libraryManager;
+        private readonly ILogger<Plugin> _logger;
+        private readonly IFileSystem _fileSystem;
+
+        private const bool DebugMode = true;
+        private const string FormatterDirectory = "Directory";
+        private const string FormatterName = "FileName";
+        private static readonly string[] _subtitleFileExtensions = new string[] { ".ass", ".srt", ".ssa", ".sub", ".idx", ".vtt" };
+
         /// <summary>
         /// Gets the current plugin instance.
         /// </summary>
         public static Plugin? Instance { get; private set; }
 
+        /// <inheritdoc/>
         public override void SaveConfiguration(PluginConfiguration config)
         {
             if (Instance != null)
@@ -102,18 +114,6 @@ namespace Jellyfin.Plugin.SubtitleSorter
         {
             return new[] { new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace) } };
         }
-
-
-        // THE ACTUAL PLUGIN
-        private readonly ILibraryManager _libraryManager;
-        private readonly ILogger<Plugin> _logger;
-        private readonly IFileSystem _fileSystem;
-
-        private const bool DebugMode = true;
-        private const string FormatterDirectory = "Directory";
-        private const string FormatterName = "FileName";
-        private static readonly string[] _subtitleFileExtensions = new string[] { ".ass", ".srt", ".ssa", ".sub", ".idx", ".vtt" };
-
 
         /// <inheritdoc />
         public Task Run(IProgress<double> progress, CancellationToken cancellationToken)

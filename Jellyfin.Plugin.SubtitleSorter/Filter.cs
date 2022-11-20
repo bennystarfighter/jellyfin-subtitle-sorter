@@ -1,5 +1,3 @@
-using System;
-
 namespace Jellyfin.Plugin.SubtitleSorter;
 
 #pragma warning disable CS0162, CS1591, SA1201

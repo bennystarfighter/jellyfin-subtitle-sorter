@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using MediaBrowser.Model.Plugins;
-
 #pragma warning disable CA2227
 
 namespace Jellyfin.Plugin.SubtitleSorter.Configuration;
+
+using System.Collections.ObjectModel;
+using MediaBrowser.Model.Plugins;
 
 /// <summary>
 /// Plugin configuration.
@@ -20,18 +18,12 @@ public class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     public PluginConfiguration()
     {
-        Enabled = true;
-        // set default options here
-        MovieFilters = new Collection<Filter>();
-        EpisodeFilters = new Collection<Filter>();
+        this.Enabled = true;
 
-        // TEST
-        /*
-        Filter movieFilterTest = new Filter();
-        movieFilterTest.Enabled = true;
-        movieFilterTest.Identifier = string.Empty;
-        movieFilterTest.LocationFilter = "{" + FormatterDirectory + "}/Subs";
-        */
+        // set default options here
+        this.MovieFilters = new Collection<Filter>();
+        this.EpisodeFilters = new Collection<Filter>();
+
         // MovieFilters.Add(movieFilterTest);
         // END
     }
