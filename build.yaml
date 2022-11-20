@@ -1,16 +1,17 @@
 ---
-name: "Template"
-guid: "eb5d7894-8eef-4b36-aa6f-5d124e828ce1"
-version: "1.0.0.0"
+name: "Subtitle Sorter"
+guid: "e1f630f5-6605-43be-96d8-d89a39c4d946"
+version: "1"
 targetAbi: "10.8.0.0"
 framework: "net6.0"
-overview: "Short description about your plugin"
+overview: "A generic plugin with a filter system for detecting subtitles hidden in subfolders"
 description: >
-  This is a longer description that can span more than one
-  line and include details about your plugin.
+  The Goal of this plugin is to create a generic filter system for detecting subtitles hidden in subfolders, 
+  which Jellyfin most often does not recognize. 
+  And then link them to the right location so Jellyfin will recognize them.
 category: "General"
-owner: "jellyfin"
+owner: "BennyStarfighter"
 artifacts:
-- "Jellyfin.Plugin.Template.dll"
+- "Jellyfin.Plugin.SubtitleSorter.dll"
 changelog: >
-  changelog
+  ### Initial release version

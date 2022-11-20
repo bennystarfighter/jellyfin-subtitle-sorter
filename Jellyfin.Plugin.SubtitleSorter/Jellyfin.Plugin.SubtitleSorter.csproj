@@ -3,26 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.SubtitleSorter</RootNamespace>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Nullable>enable</Nullable>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-    <CodeAnalysisRuleSet>../jellyfin.ruleset</CodeAnalysisRuleSet>
-    <BaseOutputPath></BaseOutputPath>
-    <PackageVersion>1.0.0.0</PackageVersion>
     <Authors>BennyStarfighter</Authors>
     <PackageProjectUrl>https://github.com/bennystarfighter/jellyfin-subtitle-sorter</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bennystarfighter/jellyfin-subtitle-sorter</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Optimize>False</Optimize>
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
