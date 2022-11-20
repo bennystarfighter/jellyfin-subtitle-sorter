@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -15,8 +16,8 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 #pragma warning disable CS0162
 #pragma warning disable CS1591
@@ -36,16 +37,38 @@ namespace Jellyfin.Plugin.SubtitleSorter
     /// <summary>
     /// The main plugin.
     /// </summary>
-    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, ILibraryPostScanTask
     {
+        /*
+            private readonly ILibraryManager _libraryManager;
+            private readonly ILogger<SubtitleSorter> _logger;
+            private readonly IFileSystem _fileSystem;
+
+            public SubtitleSorter(
+                ILibraryManager libraryManager,
+                ILoggerFactory loggerFactory,
+                IFileSystem fileSystem)
+            {
+            _libraryManager = libraryManager;
+            _logger = loggerFactory.CreateLogger<SubtitleSorter>();
+            _fileSystem = fileSystem;
+        }
+         */
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Plugin"/> class.
         /// </summary>
         /// <param name="applicationPaths">Instance of the <see cref="IApplicationPaths"/> interface.</param>
         /// <param name="xmlSerializer">Instance of the <see cref="IXmlSerializer"/> interface.</param>
-        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
+        /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
+        /// <param name="loggerFactory">Instance of the <see cref="ILoggerFactory"/> interface.</param>
+        /// <param name="fileSystem">Instance of the <see cref="IFileSystem"/> interface.</param>
+        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ILibraryManager libraryManager, ILoggerFactory loggerFactory, IFileSystem fileSystem)
             : base(applicationPaths, xmlSerializer)
         {
+            _libraryManager = libraryManager;
+            _logger = loggerFactory.CreateLogger<Plugin>();
+            _fileSystem = fileSystem;
             Instance = this;
         }
 
@@ -56,35 +79,35 @@ namespace Jellyfin.Plugin.SubtitleSorter
         public override Guid Id => Guid.Parse("e1f630f5-6605-43be-96d8-d89a39c4d946");
 
         /// <inheritdoc />
-        public override string Description => "Allows one to set filters and rules to properly detect subtitles.";
+        public override string Description => "Lets you set filters to properly copy subtitles to the appropriate location.";
 
         /// <summary>
         /// Gets the current plugin instance.
         /// </summary>
         public static Plugin? Instance { get; private set; }
 
+        public override void SaveConfiguration(PluginConfiguration config)
+        {
+            if (Instance != null)
+            {
+                Instance.Configuration = config;
+            }
+
+            base.SaveConfiguration(config);
+        }
+
+
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
         {
             return new[] { new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace) } };
         }
-    }
 
-    public class SubtitleSorter : ILibraryPostScanTask
-    {
+
+        // THE ACTUAL PLUGIN
         private readonly ILibraryManager _libraryManager;
-        private readonly ILogger<SubtitleSorter> _logger;
+        private readonly ILogger<Plugin> _logger;
         private readonly IFileSystem _fileSystem;
-
-        public SubtitleSorter(
-            ILibraryManager libraryManager,
-            ILoggerFactory loggerFactory,
-            IFileSystem fileSystem)
-        {
-            _libraryManager = libraryManager;
-            _logger = loggerFactory.CreateLogger<SubtitleSorter>();
-            _fileSystem = fileSystem;
-        }
 
         private const bool DebugMode = true;
         private const string FormatterDirectory = "Directory";
@@ -96,11 +119,39 @@ namespace Jellyfin.Plugin.SubtitleSorter
         public Task Run(IProgress<double> progress, CancellationToken cancellationToken)
         {
             progress.Report(0);
+            if (Instance?.Configuration == null || !Instance.Configuration.Enabled)
+            {
+                return Task.CompletedTask;
+            }
 
-            List<Filter> movieFilters = new List<Filter>();
-            List<Filter> episodeFilters = new List<Filter>();
-            movieFilters.Add(new Filter() { _identifier = string.Empty, _locationFilter = "{" + FormatterDirectory + "}" + Path.DirectorySeparatorChar + "Subs" });
-            episodeFilters.Add(new Filter() { _identifier = "RARBG", _locationFilter = "{" + FormatterDirectory + "}" + Path.DirectorySeparatorChar + "Subs" + Path.DirectorySeparatorChar + "{" + FormatterName + "}" });
+            Collection<Filter>? movieFilters = Instance?.Configuration.MovieFilters;
+            Collection<Filter>? episodeFilters = Instance?.Configuration.EpisodeFilters;
+
+            if (movieFilters == null)
+            {
+                _logger.LogError("Movie Filters == Null");
+                return Task.CompletedTask;
+            }
+
+            if (episodeFilters == null)
+            {
+                _logger.LogError("Episode Filters == Null");
+                return Task.CompletedTask;
+            }
+
+            if (DebugMode)
+            {
+                _logger.LogInformation("Current configuration:");
+                foreach (var filter in movieFilters)
+                {
+                    _logger.LogInformation("Movie Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
+                }
+
+                foreach (var filter in episodeFilters)
+                {
+                    _logger.LogInformation("Episode Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
+                }
+            }
 
             // Find Movies
             _logger.LogInformation("Finding Movies");
@@ -228,12 +279,16 @@ namespace Jellyfin.Plugin.SubtitleSorter
 
         private void RunSorter(BaseItem item, Filter filter)
         {
-            if (!item.Path.Contains(filter._identifier, StringComparison.Ordinal))
+            if (!string.IsNullOrWhiteSpace(filter.Identifier))
             {
-                return;
+                if (!item.Path.Contains(filter.Identifier, StringComparison.Ordinal))
+                {
+                    return;
+                }
             }
 
-            string subtitlesLocation = ProcessLocationFilter(item, filter._locationFilter);
+
+            string subtitlesLocation = ProcessLocationFilter(item, filter.LocationFilter);
 
             var folderFiles = _fileSystem.GetFiles(subtitlesLocation);
             List<FileSystemMetadata> subtitleFiles = new List<FileSystemMetadata>();

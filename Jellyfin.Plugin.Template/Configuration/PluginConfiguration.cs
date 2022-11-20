@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using MediaBrowser.Model.Plugins;
 
 #pragma warning disable CA2227
@@ -13,7 +12,7 @@ namespace Jellyfin.Plugin.SubtitleSorter.Configuration;
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
 {
-    private const string FormatterDirectory = "Directory";
+    // private const string FormatterDirectory = "Directory";
     // private const string FormatterName = "FileName";
 
     /// <summary>
@@ -24,8 +23,17 @@ public class PluginConfiguration : BasePluginConfiguration
         Enabled = true;
         // set default options here
         MovieFilters = new Collection<Filter>();
-        EpisodeFilters = new Collection<Filter>(new List<Filter>(Array.Empty<Filter>()));
-        MovieFilters.Add(new Filter() { _identifier = string.Empty, _locationFilter = "{" + FormatterDirectory + "}/Subs" });
+        EpisodeFilters = new Collection<Filter>();
+
+        // TEST
+        /*
+        Filter movieFilterTest = new Filter();
+        movieFilterTest.Enabled = true;
+        movieFilterTest.Identifier = string.Empty;
+        movieFilterTest.LocationFilter = "{" + FormatterDirectory + "}/Subs";
+        */
+        // MovieFilters.Add(movieFilterTest);
+        // END
     }
 
     /// <summary>
