@@ -13,11 +13,10 @@
 
 namespace Jellyfin.Plugin.SubtitleSorter
 {
-    using System.Diagnostics.CodeAnalysis;
-
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -39,6 +38,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
     /// The main plugin.
     /// </summary>
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1309:Field names should not begin with underscore")]
+    [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1101:Prefix local calls with this")]
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, ILibraryPostScanTask
     {
         /*
@@ -87,7 +87,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
         private readonly ILogger<Plugin> _logger;
         private readonly IFileSystem _fileSystem;
 
-        private const bool DebugMode = true;
+        private const bool DebugMode = false;
         private const string FormatterDirectory = "Directory";
         private const string FormatterName = "FileName";
         private static readonly string[] _subtitleFileExtensions = new string[] { ".ass", ".srt", ".ssa", ".sub", ".idx", ".vtt" };
@@ -139,18 +139,15 @@ namespace Jellyfin.Plugin.SubtitleSorter
                 return Task.CompletedTask;
             }
 
-            if (DebugMode)
+            _logger.LogDebug("Current configuration:");
+            foreach (var filter in movieFilters)
             {
-                _logger.LogInformation("Current configuration:");
-                foreach (var filter in movieFilters)
-                {
-                    _logger.LogInformation("Movie Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
-                }
+                _logger.LogDebug("Movie Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
+            }
 
-                foreach (var filter in episodeFilters)
-                {
-                    _logger.LogInformation("Episode Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
-                }
+            foreach (var filter in episodeFilters)
+            {
+                _logger.LogDebug("Episode Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
             }
 
             // Find Movies
@@ -269,7 +266,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
             }
         }
 
-        private string ProcessLocationFilter(BaseItem item, string locationFilter)
+        private static string ProcessLocationFilter(BaseItem item, string locationFilter)
         {
             string subtitlesLocation = locationFilter;
             subtitlesLocation = subtitlesLocation.Replace("{" + FormatterDirectory + "}", Path.GetDirectoryName(item.Path), StringComparison.Ordinal);
@@ -287,10 +284,23 @@ namespace Jellyfin.Plugin.SubtitleSorter
                 }
             }
 
-
             string subtitlesLocation = ProcessLocationFilter(item, filter.LocationFilter);
+            if (!_fileSystem.DirectoryExists(subtitlesLocation))
+            {
+                return;
+            }
 
-            var folderFiles = _fileSystem.GetFiles(subtitlesLocation);
+            IEnumerable<FileSystemMetadata> folderFiles;
+            try
+            {
+                folderFiles = _fileSystem.GetFiles(subtitlesLocation);
+            }
+            catch (Exception e)
+            {
+                _logger.LogDebug("{Error}", e);
+                return;
+            }
+
             List<FileSystemMetadata> subtitleFiles = new List<FileSystemMetadata>();
             foreach (var file in folderFiles)
             {
@@ -308,12 +318,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
                     continue;
                 }
 
-                if (DebugMode)
-                {
-                    _logger.LogInformation("Sub: {SubFile}", subFile.FullName);
-                    _logger.LogInformation("New sub: {NewSubFile}", newSubFile);
-                }
-
+                _logger.LogDebug("Found: {SubFile} \nCreating: {NewFile}", subFile.FullName, newSubFile);
                 CopySubtitleFile(subFile.FullName, newSubFile);
                 item.ChangedExternally();
             }
