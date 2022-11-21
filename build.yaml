@@ -1,7 +1,7 @@
 ---
 name: "Subtitle Sorter"
 guid: "e1f630f5-6605-43be-96d8-d89a39c4d946"
-version: "1.0.0.1"
+version: "1.0.0.2"
 targetAbi: "10.8.0.0"
 framework: "net6.0"
 overview: "A generic plugin with a filter system for detecting subtitles hidden in subfolders"
@@ -14,4 +14,4 @@ owner: "BennyStarfighter"
 artifacts:
 - "Jellyfin.Plugin.SubtitleSorter.dll"
 changelog: >
-  ### Bumped version
+  ### Cleanup and fixed some minor error handling.
