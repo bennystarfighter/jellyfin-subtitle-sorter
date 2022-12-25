@@ -108,7 +108,6 @@ namespace Jellyfin.Plugin.SubtitleSorter
             base.SaveConfiguration(config);
         }
 
-
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
         {
@@ -118,6 +117,8 @@ namespace Jellyfin.Plugin.SubtitleSorter
         /// <inheritdoc />
         public Task Run(IProgress<double> progress, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Running Subtitle Sorter");
+
             progress.Report(0);
             if (Instance?.Configuration == null || !Instance.Configuration.Enabled)
             {
@@ -244,6 +245,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
             try
             {
                 File.CreateSymbolicLink(newFilePath, fileToCopy);
+                _logger.LogDebug("Linked subtitle file [{Current}] to [{New}]", fileToCopy, newFilePath);
             }
             catch (Exception ex)
             {
@@ -253,6 +255,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
                     try
                     {
                         File.Copy(fileToCopy, newFilePath);
+                        _logger.LogDebug("Copied subtitle file [{Current}] to [{New}]", fileToCopy, newFilePath);
                     }
                     catch (Exception e)
                     {
@@ -278,7 +281,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
         {
             if (!string.IsNullOrWhiteSpace(filter.Identifier))
             {
-                if (!item.Path.Contains(filter.Identifier, StringComparison.Ordinal))
+                if (!item.Path.Contains(filter.Identifier, StringComparison.OrdinalIgnoreCase))
                 {
                     return;
                 }
