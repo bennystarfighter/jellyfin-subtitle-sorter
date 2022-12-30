@@ -9,6 +9,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>..\jellyfin\data\plugins\Jellyfin.Plugin.SubtitleSorter</OutputPath>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Jellyfin.Controller" Version="10.8.4" />
     <PackageReference Include="Jellyfin.Model" Version="10.8.4" />

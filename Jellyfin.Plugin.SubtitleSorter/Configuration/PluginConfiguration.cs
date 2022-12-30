@@ -20,12 +20,7 @@ public class PluginConfiguration : BasePluginConfiguration
     {
         this.Enabled = true;
 
-        // set default options here
-        this.MovieFilters = new Collection<Filter>();
-        this.EpisodeFilters = new Collection<Filter>();
-
-        // MovieFilters.Add(movieFilterTest);
-        // END
+        this.Filters = new Collection<Filter>();
     }
 
     /// <summary>
@@ -34,12 +29,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool Enabled { get; set; }
 
     /// <summary>
-    /// Gets or sets Filters to find subtitles to movies.
+    /// Gets or sets Filters to find subtitles.
     /// </summary>
-    public Collection<Filter> MovieFilters { get; set; }
-
-    /// <summary>
-    /// Gets or sets Filters to find subtitles to episodes.
-    /// </summary>
-    public Collection<Filter> EpisodeFilters { get; set; }
+    public Collection<Filter> Filters { get; set; }
 }

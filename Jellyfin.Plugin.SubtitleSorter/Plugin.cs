@@ -41,22 +41,6 @@ namespace Jellyfin.Plugin.SubtitleSorter
     [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1101:Prefix local calls with this")]
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, ILibraryPostScanTask
     {
-        /*
-            private readonly ILibraryManager _libraryManager;
-            private readonly ILogger<SubtitleSorter> _logger;
-            private readonly IFileSystem _fileSystem;
-
-            public SubtitleSorter(
-                ILibraryManager libraryManager,
-                ILoggerFactory loggerFactory,
-                IFileSystem fileSystem)
-            {
-            _libraryManager = libraryManager;
-            _logger = loggerFactory.CreateLogger<SubtitleSorter>();
-            _fileSystem = fileSystem;
-        }
-         */
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Plugin"/> class.
         /// </summary>
@@ -119,126 +103,86 @@ namespace Jellyfin.Plugin.SubtitleSorter
         {
             _logger.LogInformation("Running Subtitle Sorter");
 
-            progress.Report(0);
+            progress.Report(10);
             if (Instance?.Configuration == null || !Instance.Configuration.Enabled)
             {
                 return Task.CompletedTask;
             }
 
-            Collection<Filter>? movieFilters = Instance?.Configuration.MovieFilters;
-            Collection<Filter>? episodeFilters = Instance?.Configuration.EpisodeFilters;
+            Collection<Filter>? filters = Instance?.Configuration.Filters;
 
-            if (movieFilters == null)
+            if (filters == null)
             {
                 _logger.LogError("Movie Filters == Null");
                 return Task.CompletedTask;
             }
 
-            if (episodeFilters == null)
-            {
-                _logger.LogError("Episode Filters == Null");
-                return Task.CompletedTask;
-            }
-
             _logger.LogDebug("Current configuration:");
-            foreach (var filter in movieFilters)
+            foreach (var filter in filters)
             {
-                _logger.LogDebug("Movie Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
+                _logger.LogDebug("Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
             }
 
-            foreach (var filter in episodeFilters)
+            foreach (var filter in filters)
             {
-                _logger.LogDebug("Episode Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
-            }
+                _logger.LogDebug("Running Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
 
-            // Find Movies
-            _logger.LogInformation("Finding Movies");
-            var movieQuery = new InternalItemsQuery { IncludeItemTypes = new[] { BaseItemKind.Movie }, IsVirtualItem = false, OrderBy = new List<(string, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
-            var allMovies = _libraryManager.GetItemList(movieQuery, false)
-                .Select(m => m as MediaBrowser.Controller.Entities.Movies.Movie).ToList();
-            _logger.LogInformation("Found [{AllMoviesCount}] eligible movies", allMovies.Count);
-
-            // Find Episodes
-            _logger.LogInformation("Finding Episodes");
-            var episodeQuery = new InternalItemsQuery { IncludeItemTypes = new[] { BaseItemKind.Episode }, IsVirtualItem = false, OrderBy = new List<(string, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
-            var allEpisodes = _libraryManager.GetItemList(episodeQuery, false)
-                .Select(m => m as MediaBrowser.Controller.Entities.TV.Episode).ToList();
-            _logger.LogInformation("Found [{AllEpisodesCount}] eligible episodes", allEpisodes.Count);
-
-            int objectsFound = allMovies.Count + allEpisodes.Count;
-            var completedCount = 0;
-
-            // Run Movie Sorter
-            foreach (var movie in allMovies)
-            {
-                if (movie == null)
+                BaseItemKind QueryType;
+                switch (filter.Type)
                 {
-                    continue;
+                    case FilterType.None:
+                        continue;
+                    case FilterType.Movie:
+                        QueryType = BaseItemKind.Movie;
+                        break;
+                    case FilterType.Episode:
+                        QueryType = BaseItemKind.Episode;
+                        break;
+                    case FilterType.Video:
+                        QueryType = BaseItemKind.Video;
+                        break;
+                    default:
+                        continue;
                 }
 
-                if (string.IsNullOrEmpty(movie.Path))
-                {
-                    continue;
-                }
+                InternalItemsQuery query = new InternalItemsQuery { IncludeItemTypes = new[] { QueryType }, IsVirtualItem = false, OrderBy = new List<(string, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
 
-                foreach (var filter in movieFilters)
+                var allItems = _libraryManager.GetItemList(query, false)
+                    .Select(m => m as MediaBrowser.Controller.Entities.BaseItem).ToList();
+
+                _logger.LogInformation("Found [{AllMoviesCount}] eligible movies", allItems.Count);
+
+                foreach (var item in allItems)
                 {
+                    if (item == null)
+                    {
+                        _logger.LogError("Item found was null");
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(item.Path))
+                    {
+                        _logger.LogError("Item path was null");
+                        continue;
+                    }
+
                     try
                     {
-                        RunSorter(movie, filter);
+                        RunSorter(item, filter);
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("Failure during sorting: {Error}", e);
+                        Console.WriteLine(e);
+                        throw;
                     }
                 }
-
-                ++completedCount;
 
                 // calc percentage (current / maximum) * 100
-                progress.Report((completedCount / objectsFound) * 100);
-            }
-
-            // Run episode sorter
-            foreach (var episode in allEpisodes)
-            {
-                if (episode == null)
-                {
-                    continue;
-                }
-
-                if (string.IsNullOrEmpty(episode.Path))
-                {
-                    continue;
-                }
-
-                foreach (var filter in episodeFilters)
-                {
-                    try
-                    {
-                        RunSorter(episode, filter);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError("Failure during sorting: {Error}", e);
-                    }
-                }
-
-                ++completedCount;
-
-                // calc percentage (current / maximum) * 100
-                progress.Report((completedCount / objectsFound) * 100);
+                progress.Report((filters.IndexOf(filter) / filters.Count) * 100);
             }
 
             return Task.CompletedTask;
         }
-
-        /*
-        private string RemoveExtensionFromPath(string input, string extension)
-        {
-            return input.EndsWith(extension) ? input[..input.LastIndexOf(extension, StringComparison.Ordinal)] : input;
-        }
-        */
 
         private void CopySubtitleFile(string fileToCopy, string newFilePath)
         {
@@ -269,14 +213,6 @@ namespace Jellyfin.Plugin.SubtitleSorter
             }
         }
 
-        private static string ProcessLocationFilter(BaseItem item, string locationFilter)
-        {
-            string subtitlesLocation = locationFilter;
-            subtitlesLocation = subtitlesLocation.Replace("{" + FormatterDirectory + "}", Path.GetDirectoryName(item.Path), StringComparison.Ordinal);
-            subtitlesLocation = subtitlesLocation.Replace("{" + FormatterName + "}", item.FileNameWithoutExtension, StringComparison.Ordinal);
-            return subtitlesLocation;
-        }
-
         private void RunSorter(BaseItem item, Filter filter)
         {
             if (!string.IsNullOrWhiteSpace(filter.Identifier))
@@ -287,7 +223,11 @@ namespace Jellyfin.Plugin.SubtitleSorter
                 }
             }
 
-            string subtitlesLocation = ProcessLocationFilter(item, filter.LocationFilter);
+            // Process Location Filter
+            string subtitlesLocation = filter.LocationFilter;
+            subtitlesLocation = subtitlesLocation.Replace("{" + FormatterDirectory + "}", Path.GetDirectoryName(item.Path), StringComparison.Ordinal);
+            subtitlesLocation = subtitlesLocation.Replace("{" + FormatterName + "}", item.FileNameWithoutExtension, StringComparison.Ordinal);
+
             if (!_fileSystem.DirectoryExists(subtitlesLocation))
             {
                 return;

@@ -7,404 +7,417 @@
 </head>
 
 <body>
-    <div class="page type-interior pluginConfigurationPage"
-        data-require="emby-input,emby-button,emby-select,emby-checkbox" data-role="page" id="SorterConfigPage">
-        <div data-role="content">
-            <div class="content-primary">
-                <form id="SorterConfigForm">
-                    <h1 style="margin-top: 3rem;">About</h1>
-                    <p>The Goal of this plugin is to create a generic filter system for detecting subtitles hidden in
-                        subfolders, which jellyfin most often does not recognize. And the link them to the right
-                        location so
-                        jellyfin will recognize them. This plugin will try and create a symbolic link first to not waste
-                        any
-                        unecessary space, but if those are not supported by your system it will fallback to a
-                        traditional
-                        copy. There's no code for deleting files in this plugin. So even if something would go wrong the
-                        worst thing that would theoretically occur by this plugin is duplicated files. With that said
-                        though.</p>
-                    <p><b>I am not responsible for anything that may happen to your jellyfin server, your media library,
-                            your cat or anything else as a result of using this plugin. Check out the code <a
-                                target="_blank" href="https://github.com/bennystarfighter/jellyfin-subtitle-sorter">
-                                here </a>at and use it at your own risk.</b></p>
-                    <button onclick="ToggleHowTo();" is="emby-button" type="button" class="raised button-submit emby-button">
-                        <p>
-                            Show How To Guide
-                        </p>
+<div id="SorterConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+     data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="SorterConfigForm">
+                <h1 style="margin-top: 3rem;">About</h1>
+                <p>The Goal of this plugin is to create a generic filter system for detecting subtitles hidden in
+                    subfolders, which jellyfin most often does not recognize. And the link them to the right
+                    location so
+                    jellyfin will recognize them. This plugin will try and create a symbolic link first to not waste
+                    any
+                    unecessary space, but if those are not supported by your system it will fallback to a
+                    traditional
+                    copy. There's no code for deleting files in this plugin. So even if something would go wrong the
+                    worst thing that would theoretically occur by this plugin is duplicated files. With that said
+                    though.</p>
+                <p><b>I am not responsible for anything that may happen to your jellyfin server, your media library,
+                    your cat or anything else as a result of using this plugin. Check out the code <a
+                        target="_blank" href="https://github.com/bennystarfighter/jellyfin-subtitle-sorter">
+                        here </a>at and use it at your own risk.</b></p>
+                <button onclick="ToggleHowTo();" is="emby-button" type="button"
+                        class="raised button-submit emby-button">
+                    <p>
+                        Show How To Guide
+                    </p>
+                </button>
+                <script>
+                    function ToggleHowTo() {
+                        var x = document.getElementById("SubtitleSorterHowTo");
+                        if (x.style.display === "none") {
+                            x.style.display = "block";
+                        } else {
+                            x.style.display = "none";
+                        }
+                    }
+                </script>
+                <div id="SubtitleSorterHowTo" style="display: none;">
+                    <h1 style="margin-top: 3rem;">How To Use</h1>
+                    <p>The idea of this plugin is divided up in two parts. You have your <b>Identifier</b> which is
+                        a text
+                        the plugin matches all items against and sees if the filename contains that identifier.
+                        <b>WARNING:
+                            If your identifier is empty it will run against all files.</b> And then you have your
+                        <b>Location
+                            filter</b> which tells the plugins where it should look for the subtitles. The good
+                        thing about
+                        this is that you probably have a lot of media which uses the same file structure, but isnt
+                        recognized by jellyfin and that can easily be fixed here.<br>The Location filter should
+                        always point
+                        to a folder.
+                    </p>
+                    <p style="margin-top: 2.5rem;">The plugin runs automatically after each library scan. <br>It
+                        looks for
+                        these file extensions:</p>
+                    <ul>
+                        <li>.ass</li>
+                        <li>.srt</li>
+                        <li>.ssa</li>
+                        <li>.sub</li>
+                        <li>.idx</li>
+                        <li>.vtt</li>
+                    </ul>
+                    <p style="margin-top: 2.5rem;">To build your Identifier and Location filter you have som keys
+                        that you
+                        will use. These keys will be replaced by the plugin with the data they represent. This will
+                        be used
+                        inside a general path description to describe where relative to the file the
+                        subtitles are.</p>
+                    <h3>Available keys at this time:</h3>
+                    <ul>
+                        <li>{Directory}</li>
+                        <li>{FileName}</li>
+                    </ul>
+
+                    <h1 style="margin-top: 3rem;">Examples</h1>
+
+                    <p style="margin-top: 2rem">This example is a Movie Filter for all movie files having
+                        "<b>GRAR</b>"
+                        in its name.<br>Identifier: GRAR<br>Location filter: {Directory}/Subs</p>
+                    <p>
+                        File structure before sorting:<br>
+                        <code>
+                            - MovieName.GRAR.1080p/<br>
+                            --- MovieName.Grar.1080p.mkv<br>
+                            --- Subs/<br>
+                            ------ English.srt<br>
+                            ------ Spanish.srt<br>
+                        </code>
+                    </p>
+                    <p style="margin-top: 2rem">File Structure after sorting with the filter above:<br>
+                        <code>
+                            - MovieName.GRAR.1080p/<br>
+                            --- Subs/<br>
+                            ------ English.srt<br>
+                            ------ Spanish.srt<br>
+                            --- MovieName.Grar.1080p.mkv<br>
+                            --- MovieName.Grar.1080p.English.srt (Symlink)<br>
+                            --- MovieName.Grar.1080p.Spanish.srt (Symlink)<br>
+                        </code>
+                    </p>
+
+                    <hr style="margin-top: 2rem;">
+
+                    <p style="margin-top: 2rem;">This example is an Episode filter (TV Shows) for all episode files
+                        having
+                        "<b>GRAR</b>" in its name.<br>
+                        Identifier: GRAR<br>
+                        Location filter: {Directory}/Subs/{FileName}<br>
+                    </p>
+                    <p>File structure before sorting:<br>
+                        <code>
+                            - TvShowName.1080p.GRAR/<br>
+                            --- Subs/<br>
+                            ------ TvShowName.s01e01.GRAR<br>
+                            --------- English.srt<br>
+                            --------- Spanish.srt<br>
+                            ------ TvShowName.s01e02.GRAR<br>
+                            --------- English.srt<br>
+                            --------- Spanish.srt<br>
+                            --- TvShowName.s01e01.GRAR.mkv<br>
+                            --- TvShowName.s01e02.GRAR.mkv<br>
+                        </code>
+                    </p>
+                    <p style="margin-bottom: 2rem">File Structure after sorting with the filter above:<br>
+                        <code>
+                            - TvShowName.1080p.GRAR/<br>
+                            --- Subs/<br>
+                            ------ TvShowName.s01e01.GRAR<br>
+                            --------- English.srt<br>
+                            --------- Spanish.srt<br>
+                            ------ TvShowName.s01e02.GRAR<br>
+                            --------- English.srt<br>
+                            --------- Spanish.srt<br>
+                            --- TvShowName.s01e01.GRAR.mkv<br>
+                            --- TvShowName.s01e01.GRAR.English.srt (Symlink)<br>
+                            --- TvShowName.s01e01.GRAR.Spanish.srt (Symlink)<br>
+                            --- TvShowName.s01e02.GRAR.mkv<br>
+                            --- TvShowName.s01e02.GRAR.English.srt (Symlink)<br>
+                            --- TvShowName.s01e02.GRAR.Spanish.srt (Symlink)<br>
+                        </code>
+                    </p>
+                </div>
+                <h1 style="margin-top: 3rem;">General Settings</h1>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="Enabled" is="emby-checkbox" name="TrueFalseCheckBox" type="checkbox"/>
+                        <span>Sorter enabled</span>
+                    </label>
+                    <p>Will not do any sorting at all if this is unchecked.</p>
+                </div>
+                <h1>Filters</h1>
+                <div id="Filters">
+                    <!-- Filters will be added here -->
+                </div>
+                <div>
+                    <button is="emby-button" type="button" class="raised button-submit emby-button"
+                            onclick='AddNewFilter(document.querySelector("#Filters"), null);'>
+                        <span>Add Filter</span>
                     </button>
-                    <script>
-                        function ToggleHowTo() {
-                            var x = document.getElementById("SubtitleSorterHowTo");
-                            if (x.style.display === "none") {
-                                x.style.display = "block";
-                            } else {
-                                x.style.display = "none";
-                            }
-                        }
-                    </script>
-                    <div id="SubtitleSorterHowTo" style="display: none;">
-                        <h1 style="margin-top: 3rem;">How To Use</h1>
-                        <p>The idea of this plugin is divided up in two parts. You have your <b>Identifier</b> which is
-                            a text
-                            the plugin matches all items against and sees if the filename contains that identifier.
-                            <b>WARNING:
-                                If your identifier is empty it will run against all files.</b> And then you have your
-                            <b>Location
-                                filter</b> which tells the plugins where it should look for the subtitles. The good
-                            thing about
-                            this is that you probably have a lot of media which uses the same file structure, but isnt
-                            recognized by jellyfin and that can easily be fixed here.<br>The Location filter should
-                            always point
-                            to a folder.
-                        </p>
-                        <p style="margin-top: 2.5rem;">The plugin runs automatically after each library scan. <br>It
-                            looks for
-                            these file extensions:</p>
-                        <ul>
-                            <li>.ass</li>
-                            <li>.srt</li>
-                            <li>.ssa</li>
-                            <li>.sub</li>
-                            <li>.idx</li>
-                            <li>.vtt</li>
-                        </ul>
-                        <p style="margin-top: 2.5rem;">To build your Identifier and Location filter you have som keys
-                            that you
-                            will use. These keys will be replaced by the plugin with the data they represent. This will
-                            be used
-                            inside a general path description to describe where relative to the file the
-                            subtitles are.</p>
-                        <h3>Available keys at this time:</h3>
-                        <ul>
-                            <li>{Directory}</li>
-                            <li>{FileName}</li>
-                        </ul>
-
-                        <h1 style="margin-top: 3rem;">Examples</h1>
-
-                        <p style="margin-top: 2rem">This example is a Movie Filter for all movie files having
-                            "<b>GRAR</b>"
-                            in its name.<br>Identifier: GRAR<br>Location filter: {Directory}/Subs</p>
-                        <p>
-                            File structure before sorting:<br>
-                            <code>
-                        - MovieName.GRAR.1080p/<br>
-                        --- MovieName.Grar.1080p.mkv<br>
-                        --- Subs/<br>
-                        ------ English.srt<br>
-                        ------ Spanish.srt<br>
-                    </code>
-                        </p>
-                        <p style="margin-top: 2rem">File Structure after sorting with the filter above:<br>
-                            <code>
-                        - MovieName.GRAR.1080p/<br>
-                        --- Subs/<br>
-                        ------ English.srt<br>
-                        ------ Spanish.srt<br>
-                        --- MovieName.Grar.1080p.mkv<br>
-                        --- MovieName.Grar.1080p.English.srt (Symlink)<br>
-                        --- MovieName.Grar.1080p.Spanish.srt (Symlink)<br>
-                    </code>
-                        </p>
-
-                        <hr style="margin-top: 2rem;">
-
-                        <p style="margin-top: 2rem;">This example is an Episode filter (TV Shows) for all episode files
-                            having
-                            "<b>GRAR</b>" in its name.<br>
-                            Identifier: GRAR<br>
-                            Location filter: {Directory}/Subs/{FileName}<br>
-                        </p>
-                        <p>File structure before sorting:<br>
-                            <code>
-                        - TvShowName.1080p.GRAR/<br>
-                        --- Subs/<br>
-                        ------ TvShowName.s01e01.GRAR<br>
-                        --------- English.srt<br>
-                        --------- Spanish.srt<br>
-                        ------ TvShowName.s01e02.GRAR<br>
-                        --------- English.srt<br>
-                        --------- Spanish.srt<br>
-                        --- TvShowName.s01e01.GRAR.mkv<br>
-                        --- TvShowName.s01e02.GRAR.mkv<br>
-                    </code>
-                        </p>
-                        <p style="margin-bottom: 2rem">File Structure after sorting with the filter above:<br>
-                            <code>
-                        - TvShowName.1080p.GRAR/<br>
-                        --- Subs/<br>
-                        ------ TvShowName.s01e01.GRAR<br>
-                        --------- English.srt<br>
-                        --------- Spanish.srt<br>
-                        ------ TvShowName.s01e02.GRAR<br>
-                        --------- English.srt<br>
-                        --------- Spanish.srt<br>
-                        --- TvShowName.s01e01.GRAR.mkv<br>
-                        --- TvShowName.s01e01.GRAR.English.srt (Symlink)<br>
-                        --- TvShowName.s01e01.GRAR.Spanish.srt (Symlink)<br>
-                        --- TvShowName.s01e02.GRAR.mkv<br>
-                        --- TvShowName.s01e02.GRAR.English.srt (Symlink)<br>
-                        --- TvShowName.s01e02.GRAR.Spanish.srt (Symlink)<br>
-                    </code>
-                        </p>
-                    </div>
-                    <h1 style="margin-top: 3rem;">General Settings</h1>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="Enabled" is="emby-checkbox" name="TrueFalseCheckBox" type="checkbox" />
-                            <span>Sorter enabled</span>
-                        </label>
-                        <p>Will not do any sorting at all if this is unchecked.</p>
-                    </div>
-                    <h1>Movie Filters</h1>
-                    <div id="MovieFilters">
-                        <!-- Filters will be added here -->
-                    </div>
-                    <div>
-                        <button is="emby-button" type="button" class="raised button-submit emby-button"
-                            onclick='AddNewFilter(document.querySelector("#MovieFilters"), null);'>
-                            <span>Add Filter</span>
-                        </button>
-                        <button is="emby-button" type="button" class="raised button-delete emby-button"
+                    <button is="emby-button" type="button" class="raised button-delete emby-button"
                             onclick='ClearFilters("MovieFilters");'>
-                            <span>Clear All Movie Filters</span>
-                        </button>
-                    </div>
-                    <h1>TV Episode Filters</h1>
-                    <div id="EpisodeFilters">
-                        <!-- Filters will be added here -->
-                    </div>
-                    <div>
-                        <button is="emby-button" type="button" class="raised button-submit emby-button"
-                            onclick='AddNewFilter(document.querySelector("#EpisodeFilters"), null);'>
-                            <span>Add Filter</span>
-                        </button>
-                        <button is="emby-button" type="button" class="raised button-delete emby-button"
-                            onclick='ClearFilters("EpisodeFilters");'>
-                            <span>Clear All Episode Filters</span>
-                        </button>
-                    </div>
-                    <hr style="margin: 2rem;">
-                    <div>
-                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
-                            <span>Save</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
+                        <span>Clear All Filters</span>
+                    </button>
+                </div>
+                <hr style="margin: 2rem;">
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
         </div>
-        <script type="text/javascript">
-            let SubtitleSorterConfig = {
-                pluginUniqueId: 'e1f630f5-6605-43be-96d8-d89a39c4d946'
-            };
-
-            function ClearFilters(OuterBoxID) {
-                let outerBox = document.querySelector("#" + OuterBoxID);
-                /*
-                for (let child of outerBox.children) {
-                    child.remove();
-                }
-    
-                 */
-                while (outerBox.firstChild) {
-                    outerBox.removeChild(outerBox.firstChild);
-                }
-            }
-
-            function RemoveFilterFromButton(event) {
-                event.target.closest('.SorterFilter').remove();
-            }
-
-            function AddNewFilter(outerBox, item) {
-                let boxSpecificFilter = document.createElement("div");
-                boxSpecificFilter.setAttribute("class", "SorterFilter");
-                outerBox.appendChild(boxSpecificFilter);
-
-                let horizontalDivider = document.createElement("hr");
-                horizontalDivider.setAttribute("style", "margin-bottom: 1.5rem;");
-                boxSpecificFilter.appendChild(horizontalDivider);
-
-                // Create identifier elements
-                let identifierInputContainer = document.createElement("div");
-                identifierInputContainer.setAttribute("class", "inputContainer SorterIdentifier");
-                identifierInputContainer.setAttribute("style", "display:flex;align-items:center");
-                boxSpecificFilter.appendChild(identifierInputContainer);
-
-                let identifierLabel = document.createElement("label");
-                identifierLabel.setAttribute("class", "inputLabel inputLabelUnfocused");
-                identifierLabel.setAttribute("style", "margin-right: 1rem;");
-                identifierLabel.innerText = "Identifier:";
-                identifierInputContainer.appendChild(identifierLabel);
-
-                let identifierInput = document.createElement("input");
-                identifierInput.setAttribute("type", "text");
-                identifierInput.setAttribute("is", "emby-input");
-                identifierInput.setAttribute("style", "flex-grow:1");
-                identifierInput.setAttribute("placeholder", "case insensitive identifier")
-
-                if (item != null) {
-                    identifierInput.value = item.Identifier;
-                } else {
-                    identifierInput.value = "";
-                }
-                identifierInputContainer.appendChild(identifierInput);
-
-                let removeButton = document.createElement("button");
-                removeButton.setAttribute("type", "button");
-                removeButton.setAttribute("is", "paper-icon-button-light");
-                removeButton.setAttribute("title", "remove filter");
-                removeButton.setAttribute("class", "emby-input-iconbutton paper-icon-button-light");
-                removeButton.addEventListener("click", RemoveFilterFromButton);
-
-                let removeButtonIcon = document.createElement("span");
-                removeButtonIcon.setAttribute("class", "material-icons delete");
-                removeButtonIcon.setAttribute("aria-hidden", "true");
-                removeButton.append(removeButtonIcon);
-                identifierInputContainer.appendChild(removeButton);
-
-
-                let identifierDescription = document.createElement("div");
-                identifierDescription.setAttribute("class", "fieldDescription");
-                identifierDescription.inner = "Identifier key";
-                identifierInputContainer.appendChild(identifierDescription);
-
-                // END
-                // Create filter elements
-                let filterInputContainer = document.createElement("div");
-                filterInputContainer.setAttribute("class", "inputContainer SorterLocationFilter");
-                filterInputContainer.setAttribute("style", "display:flex;align-items:center");
-                boxSpecificFilter.appendChild(filterInputContainer);
-
-                let filterLabel = document.createElement("label");
-                filterLabel.setAttribute("class", "inputLabel inputLabelUnfocused");
-                filterLabel.setAttribute("style", "margin-right: 1rem;");
-                filterLabel.innerText = "Location filter:";
-                filterInputContainer.appendChild(filterLabel);
-
-                let filterInput = document.createElement("input");
-                filterInput.setAttribute("type", "text");
-                filterInput.setAttribute("style", "flex-grow:1");
-                filterInput.setAttribute("is", "emby-input");
-                if (item != null) {
-                    filterInput.value = item.LocationFilter;
-                } else {
-                    filterInput.value = "";
-                }
-                filterInputContainer.appendChild(filterInput);
-
-                let filterDescription = document.createElement("div");
-                filterDescription.setAttribute("class", "fieldDescription");
-                filterDescription.nodeValue = "Identifier key";
-                filterInputContainer.appendChild(filterDescription);
-            }
-
-            document.querySelector('#SorterConfigPage')
-                .addEventListener('pageshow', function () {
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(SubtitleSorterConfig.pluginUniqueId).then(function (config) {
-                        document.querySelector('#Enabled').checked = config.Enabled;
-
-                        let BoxMovieFilters = document.querySelector('#MovieFilters');
-                        for (const filter of config.MovieFilters) {
-                            AddNewFilter(BoxMovieFilters, filter);
-                        }
-
-                        let BoxEpisodeFilters = document.querySelector('#EpisodeFilters');
-                        for (const filter of config.EpisodeFilters) {
-                            AddNewFilter(BoxEpisodeFilters, filter);
-                        }
-
-                        Dashboard.hideLoadingMsg();
-                    });
-                });
-
-            document.querySelector('#SorterConfigForm')
-                .addEventListener('submit', function (e) {
-                    console.log("Save!")
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(SubtitleSorterConfig.pluginUniqueId).then(function (config) {
-                        config.Enabled = document.querySelector("#Enabled").checked;
-                        config.MovieFilters = [];
-                        config.EpisodeFilters = [];
-
-                        let MovieFilterBox = document.querySelector("#MovieFilters");
-                        for (const SorterFilter of MovieFilterBox.children) {
-                            let enabled = true;
-                            let identifier;
-                            let locationFilter;
-
-                            let SorterIdentifier = SorterFilter.querySelector('.SorterIdentifier');
-                            if (SorterIdentifier) {
-                                let input = SorterIdentifier.querySelector('.emby-input');
-                                console.log("identifier = " + input.value)
-                                identifier = input.value;
-                            } else {
-                                continue;
-                            }
-
-                            let SorterLocationFilter = SorterFilter.querySelector('.SorterLocationFilter');
-                            if (SorterLocationFilter) {
-                                let input = SorterLocationFilter.querySelector('.emby-input');
-                                locationFilter = input.value;
-                            } else {
-                                continue;
-                            }
-
-                            config.MovieFilters.push({
-                                "Enabled": enabled,
-                                "Identifier": identifier,
-                                "LocationFilter": locationFilter
-                            });
-                        }
-
-                        let EpisodeFilterBox = document.querySelector("#EpisodeFilters");
-                        for (const SorterFilter of EpisodeFilterBox.children) {
-                            let enabled = true;
-                            let identifier;
-                            let locationFilter;
-
-                            let SorterIdentifier = SorterFilter.querySelector('.SorterIdentifier');
-                            if (SorterIdentifier) {
-                                let input = SorterIdentifier.querySelector('.emby-input');
-                                console.log("identifier = " + input.value)
-                                identifier = input.value;
-                            } else {
-                                console.warn("Reached no SorterIdentifier");
-                                continue;
-                            }
-
-                            let SorterLocationFilter = SorterFilter.querySelector('.SorterLocationFilter');
-                            if (SorterLocationFilter) {
-                                let input = SorterLocationFilter.querySelector('.emby-input');
-                                locationFilter = input.value;
-                            } else {
-                                console.warn("Reached no SorterLocationFilter");
-                                continue;
-                            }
-
-                            config.EpisodeFilters.push({
-                                "Enabled": enabled,
-                                "Identifier": identifier,
-                                "LocationFilter": locationFilter
-                            });
-                        }
-                        console.log("config:");
-                        console.log(config)
-                        ApiClient.updatePluginConfiguration(SubtitleSorterConfig.pluginUniqueId, config).then(function (result) {
-                            Dashboard.processPluginConfigurationUpdateResult(result);
-                        });
-                    });
-
-                    e.preventDefault();
-                    Dashboard.hideLoadingMsg();
-                    return false;
-                });
-
-            function GetFiltersInJSON(outerBox) {
-
-            }
-        </script>
     </div>
+    <script type="text/javascript">
+        var SubtitleSorterConfig = {
+            pluginUniqueId: 'e1f630f5-6605-43be-96d8-d89a39c4d946'
+        };
+
+        function ClearFilters(OuterBoxID) {
+            let outerBox = document.querySelector("#" + OuterBoxID);
+
+            while (outerBox.firstChild) {
+                outerBox.removeChild(outerBox.firstChild);
+            }
+        }
+
+        function RemoveFilterFromButton(event) {
+            event.target.closest('.SorterFilter').remove();
+        }
+
+        function AddNewFilter(outerBox, item) {
+            let boxSpecificFilter = document.createElement("div");
+            boxSpecificFilter.setAttribute("class", "SorterFilter");
+            outerBox.appendChild(boxSpecificFilter);
+
+            let horizontalDivider = document.createElement("hr");
+            horizontalDivider.setAttribute("style", "margin-bottom: 1.5rem;");
+            boxSpecificFilter.appendChild(horizontalDivider);
+
+            // type
+            // <div class="selectContainer">
+            //  <label class="selectLabel" for="Options">Several Options</label>
+            //  <select is="emby-select" id="Options" name="Options" class="emby-select-withcolor emby-select">
+            //     <option id="optOneOption" value="OneOption">One Option</option>
+            //     <option id="optAnotherOption" value="AnotherOption">Another Option</option>
+            //  </select>
+            // </div>
+
+            let typeContainer = document.createElement("div");
+            typeContainer.setAttribute("class", "selectContainer");
+            boxSpecificFilter.appendChild(typeContainer);
+            let typeLabel = document.createElement("label");
+            typeLabel.setAttribute("class", "selectLabel");
+            typeLabel.innerText = "Media Type:";
+            typeContainer.appendChild(typeLabel);
+            let typeSelect = document.createElement("select");
+            typeSelect.setAttribute("is", "emby-select");
+            typeSelect.setAttribute("class", "emby-select-withcolor emby-select filter-type");
+            typeContainer.appendChild(typeSelect);
+
+            let typeOptionNone = document.createElement("option");
+            typeOptionNone.setAttribute("value", "None");
+            typeOptionNone.innerText = "None";
+            typeSelect.appendChild(typeOptionNone);
+            let typeOptionMovie = document.createElement("option");
+            typeOptionMovie.setAttribute("value", "Movie");
+            typeOptionMovie.innerText = "Movie";
+            typeSelect.appendChild(typeOptionMovie);
+            let typeOptionEpisode = document.createElement("option");
+            typeOptionEpisode.setAttribute("value", "Episode");
+            typeOptionEpisode.innerText = "Episode";
+            typeSelect.appendChild(typeOptionEpisode);
+            let typeOptionVideo = document.createElement("option");
+            typeOptionVideo.setAttribute("value", "Video");
+            typeOptionVideo.innerText = "Any Video";
+            typeSelect.appendChild(typeOptionVideo);
+
+            if (item != null) {
+                switch (item.Type) {
+                    case "None":
+                        typeSelect.selectedIndex = 0;
+                        break;
+                    case "Movie":
+                        typeSelect.selectedIndex = 1;
+                        break;
+                    case "Episode":
+                        typeSelect.selectedIndex = 2;
+                        break;
+                    case "Video":
+                        typeSelect.selectedIndex = 3;
+                        break;
+                    default:
+                        console.log("REEEEEE");
+                        typeSelect.selectedIndex = 0;
+                        break;
+                }
+            } else {
+                console.log("REEEEEE");
+                typeSelect.selectedIndex = 0;
+            }
+
+
+            // Create identifier elements
+            let identifierInputContainer = document.createElement("div");
+            identifierInputContainer.setAttribute("class", "inputContainer SorterIdentifier");
+            identifierInputContainer.setAttribute("style", "display:flex;align-items:center");
+            boxSpecificFilter.appendChild(identifierInputContainer);
+
+            let identifierLabel = document.createElement("label");
+            identifierLabel.setAttribute("class", "inputLabel inputLabelUnfocused");
+            identifierLabel.setAttribute("style", "margin-right: 1rem;");
+            identifierLabel.innerText = "Identifier:";
+            identifierInputContainer.appendChild(identifierLabel);
+
+            let identifierInput = document.createElement("input");
+            identifierInput.setAttribute("type", "text");
+            identifierInput.setAttribute("is", "emby-input");
+            identifierInput.setAttribute("style", "flex-grow:1");
+            identifierInput.setAttribute("placeholder", "case insensitive identifier")
+
+            if (item != null) {
+                identifierInput.value = item.Identifier;
+            } else {
+                identifierInput.value = "";
+            }
+            identifierInputContainer.appendChild(identifierInput);
+
+            let removeButton = document.createElement("button");
+            removeButton.setAttribute("type", "button");
+            removeButton.setAttribute("is", "paper-icon-button-light");
+            removeButton.setAttribute("title", "remove filter");
+            removeButton.setAttribute("class", "emby-input-iconbutton paper-icon-button-light");
+            removeButton.addEventListener("click", RemoveFilterFromButton);
+
+            let removeButtonIcon = document.createElement("span");
+            removeButtonIcon.setAttribute("class", "material-icons delete");
+            removeButtonIcon.setAttribute("aria-hidden", "true");
+            removeButton.append(removeButtonIcon);
+            identifierInputContainer.appendChild(removeButton);
+
+
+            let identifierDescription = document.createElement("div");
+            identifierDescription.setAttribute("class", "fieldDescription");
+            identifierDescription.inner = "Identifier key";
+            identifierInputContainer.appendChild(identifierDescription);
+
+            // END
+            // Create filter elements
+            let filterInputContainer = document.createElement("div");
+            filterInputContainer.setAttribute("class", "inputContainer SorterLocationFilter");
+            filterInputContainer.setAttribute("style", "display:flex;align-items:center");
+            boxSpecificFilter.appendChild(filterInputContainer);
+
+            let filterLabel = document.createElement("label");
+            filterLabel.setAttribute("class", "inputLabel inputLabelUnfocused");
+            filterLabel.setAttribute("style", "margin-right: 1rem;");
+            filterLabel.innerText = "Location filter:";
+            filterInputContainer.appendChild(filterLabel);
+
+            let filterInput = document.createElement("input");
+            filterInput.setAttribute("type", "text");
+            filterInput.setAttribute("style", "flex-grow:1");
+            filterInput.setAttribute("is", "emby-input");
+            if (item != null) {
+                filterInput.value = item.LocationFilter;
+            } else {
+                filterInput.value = "";
+            }
+            filterInputContainer.appendChild(filterInput);
+
+            let filterDescription = document.createElement("div");
+            filterDescription.setAttribute("class", "fieldDescription");
+            filterDescription.nodeValue = "Identifier key";
+            filterInputContainer.appendChild(filterDescription);
+        }
+
+        document.querySelector('#SorterConfigPage')
+            .addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(SubtitleSorterConfig.pluginUniqueId).then(function (config) {
+                    document.querySelector('#Enabled').checked = config.Enabled;
+
+                    let FiltersBox = document.querySelector('#Filters');
+                    for (const filter of config.Filters) {
+                        AddNewFilter(FiltersBox, filter);
+                    }
+
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+        document.querySelector('#SorterConfigForm')
+            .addEventListener('submit', function (e) {
+                console.log("Save!")
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(SubtitleSorterConfig.pluginUniqueId).then(function (config) {
+                    config.Enabled = document.querySelector("#Enabled").checked;
+                    config.Filters = [];
+
+                    let FilterBox = document.querySelector("#Filters");
+                    for (const SorterFilter of FilterBox.children) {
+                        let enabled = true;
+                        let type;
+                        let identifier;
+                        let locationFilter;
+
+                        let selectedType = SorterFilter.querySelector('.filter-type');
+                        if (selectedType) {
+                            type = selectedType.value;
+                        } else {
+                            continue;
+                        }
+
+                        let SorterIdentifier = SorterFilter.querySelector('.SorterIdentifier');
+                        if (SorterIdentifier) {
+                            let input = SorterIdentifier.querySelector('.emby-input');
+                            console.log("identifier = " + input.value)
+                            identifier = input.value;
+                        } else {
+                            continue;
+                        }
+
+                        let SorterLocationFilter = SorterFilter.querySelector('.SorterLocationFilter');
+                        if (SorterLocationFilter) {
+                            let input = SorterLocationFilter.querySelector('.emby-input');
+                            locationFilter = input.value;
+                        } else {
+                            continue;
+                        }
+
+                        config.Filters.push({
+                            "Enabled": enabled,
+                            "Identifier": identifier,
+                            "LocationFilter": locationFilter,
+                            "Type": type
+                        });
+                    }
+
+                    console.log("config:");
+                    console.log(config)
+                    ApiClient.updatePluginConfiguration(SubtitleSorterConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+
+                e.preventDefault();
+                Dashboard.hideLoadingMsg();
+                return false;
+            });
+    </script>
+</div>
 </body>
 
 </html>
