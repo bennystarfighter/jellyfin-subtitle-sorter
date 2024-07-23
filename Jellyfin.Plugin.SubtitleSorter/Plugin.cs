@@ -30,7 +30,6 @@ namespace Jellyfin.Plugin.SubtitleSorter
     using MediaBrowser.Controller.Library;
     using MediaBrowser.Model.IO;
     using MediaBrowser.Model.Plugins;
-    using MediaBrowser.Model.Querying;
     using MediaBrowser.Model.Serialization;
     using Microsoft.Extensions.Logging;
 
@@ -71,15 +70,14 @@ namespace Jellyfin.Plugin.SubtitleSorter
         private readonly ILogger<Plugin> _logger;
         private readonly IFileSystem _fileSystem;
 
-        private const bool DebugMode = false;
         private const string FormatterDirectory = "Directory";
         private const string FormatterName = "FileName";
-        private static readonly string[] _subtitleFileExtensions = new string[] { ".ass", ".srt", ".ssa", ".sub", ".idx", ".vtt" };
+        private static readonly string[] _subtitleFileExtensions = [".ass", ".srt", ".ssa", ".sub", ".idx", ".vtt"];
 
         /// <summary>
-        /// Gets the current plugin instance.
+        /// Gets or sets the current plugin instance.
         /// </summary>
-        public static Plugin? Instance { get; private set; }
+        private static Plugin? Instance { get; set; }
 
         /// <inheritdoc/>
         public override void SaveConfiguration(PluginConfiguration config)
@@ -95,7 +93,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
         {
-            return new[] { new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace) } };
+            return [new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace) }];
         }
 
         /// <inheritdoc />
@@ -104,18 +102,12 @@ namespace Jellyfin.Plugin.SubtitleSorter
             _logger.LogInformation("Running Subtitle Sorter");
 
             progress.Report(10);
-            if (Instance?.Configuration == null || !Instance.Configuration.Enabled)
+            if (Instance?.Configuration is not { Enabled: true })
             {
                 return Task.CompletedTask;
             }
 
-            Collection<Filter>? filters = Instance?.Configuration.Filters;
-
-            if (filters == null)
-            {
-                _logger.LogError("Movie Filters == Null");
-                return Task.CompletedTask;
-            }
+            Collection<Filter> filters = Instance.Configuration.Filters;
 
             _logger.LogDebug("Current configuration:");
             foreach (var filter in filters)
@@ -127,42 +119,35 @@ namespace Jellyfin.Plugin.SubtitleSorter
             {
                 _logger.LogDebug("Running Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
 
-                BaseItemKind QueryType;
+                BaseItemKind queryType;
                 switch (filter.Type)
                 {
                     case FilterType.None:
                         continue;
                     case FilterType.Movie:
-                        QueryType = BaseItemKind.Movie;
+                        queryType = BaseItemKind.Movie;
                         break;
                     case FilterType.Episode:
-                        QueryType = BaseItemKind.Episode;
+                        queryType = BaseItemKind.Episode;
                         break;
                     case FilterType.Video:
-                        QueryType = BaseItemKind.Video;
+                        queryType = BaseItemKind.Video;
                         break;
                     default:
                         continue;
                 }
 
-                InternalItemsQuery query = new InternalItemsQuery { IncludeItemTypes = new[] { QueryType }, IsVirtualItem = false, OrderBy = new List<(string, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
+                InternalItemsQuery query = new InternalItemsQuery { IncludeItemTypes = [queryType], IsVirtualItem = false, OrderBy = new List<(ItemSortBy, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
 
-                var allItems = _libraryManager.GetItemList(query, false)
-                    .Select(m => m as MediaBrowser.Controller.Entities.BaseItem).ToList();
+                var allItems = _libraryManager.GetItemList(query, false).Select(m => m).ToList();
 
                 _logger.LogInformation("Found [{AllMoviesCount}] eligible movies", allItems.Count);
 
                 foreach (var item in allItems)
                 {
-                    if (item == null)
-                    {
-                        _logger.LogError("Item found was null");
-                        continue;
-                    }
-
                     if (string.IsNullOrEmpty(item.Path))
                     {
-                        _logger.LogError("Item path was null");
+                        _logger.LogError("Got invalid item path from library");
                         continue;
                     }
 

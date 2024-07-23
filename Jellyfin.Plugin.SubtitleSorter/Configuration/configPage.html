@@ -13,22 +13,24 @@
         <div class="content-primary">
             <form id="SorterConfigForm">
                 <h1 style="margin-top: 3rem;">About</h1>
-                <p>The Goal of this plugin is to create a generic filter system for detecting subtitles hidden in
+                <p>
+                    The Goal of this plugin is to create a generic filter system for detecting subtitles hidden in
                     subfolders, which jellyfin most often does not recognize. And the link them to the right
-                    location so
-                    jellyfin will recognize them. This plugin will try and create a symbolic link first to not waste
-                    any
-                    unecessary space, but if those are not supported by your system it will fallback to a
-                    traditional
-                    copy. There's no code for deleting files in this plugin. So even if something would go wrong the
+                    location so jellyfin will recognize them. This plugin will try and create a symbolic link first to not waste
+                    any unnecessary space, but if those are not supported by your system it will fall back to a
+                    traditional copy. There's no code for deleting files in this plugin. So even if something would go wrong the
                     worst thing that would theoretically occur by this plugin is duplicated files. With that said
-                    though.</p>
-                <p><b>I am not responsible for anything that may happen to your jellyfin server, your media library,
-                    your cat or anything else as a result of using this plugin. Check out the code <a
+                    though.
+                </p>
+                <p>
+                    <b>
+                        I am not responsible for anything that may happen to your jellyfin server, your media library,
+                        your cat or anything else as a result of using this plugin. Check out the code <a
                         target="_blank" href="https://github.com/bennystarfighter/jellyfin-subtitle-sorter">
-                        here </a>at and use it at your own risk.</b></p>
-                <button onclick="ToggleHowTo();" is="emby-button" type="button"
-                        class="raised button-submit emby-button">
+                        here </a>at and use it at your own risk.
+                    </b>
+                </p>
+                <button onclick="ToggleHowTo();" is="emby-button" type="button" class="raised button-submit emby-button">
                     <p>
                         Show How To Guide
                     </p>
