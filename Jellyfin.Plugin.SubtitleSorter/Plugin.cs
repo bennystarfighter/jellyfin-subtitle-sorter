@@ -137,8 +137,14 @@ namespace Jellyfin.Plugin.SubtitleSorter
                         continue;
                 }
 
-                InternalItemsQuery query = new InternalItemsQuery { IncludeItemTypes = [queryType], IsVirtualItem = false, OrderBy = new List<(ItemSortBy, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
-
+                //InternalItemsQuery query = new InternalItemsQuery { IncludeItemTypes = [queryType], IsVirtualItem = false, OrderBy = new List<(ItemSortBy, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
+                InternalItemsQuery query = new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { queryType },
+                    IsVirtualItem = false,
+                    OrderBy = new[] { ("SortName", "Ascending") },
+                    Recursive = true
+                };
                 var allItems = _libraryManager.GetItemList(query, false).Select(m => m).ToList();
 
                 _logger.LogInformation("Found [{AllMoviesCount}] eligible movies", allItems.Count);
