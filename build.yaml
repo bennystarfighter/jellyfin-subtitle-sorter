@@ -1,9 +1,9 @@
 ---
 name: "Subtitle Sorter"
 guid: "e1f630f5-6605-43be-96d8-d89a39c4d946"
-version: "1.0.0.4"
-targetAbi: "10.8.0.0"
-framework: "net6.0"
+version: "1.0.0.6"
+targetAbi: "10.11.3.0"
+framework: "net9.0"
 overview: "A generic plugin with a filter system for detecting subtitles hidden in subfolders"
 description: >
   The Goal of this plugin is to create a generic filter system for detecting subtitles hidden in subfolders, 

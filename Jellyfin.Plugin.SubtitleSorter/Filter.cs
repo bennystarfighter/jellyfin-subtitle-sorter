@@ -18,5 +18,3 @@ public class Filter
 
     public string LocationFilter { get; set; } = string.Empty;
 }
-
-
