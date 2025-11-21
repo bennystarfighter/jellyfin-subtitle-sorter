@@ -22,7 +22,10 @@ namespace Jellyfin.Plugin.SubtitleSorter
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Jellyfin.Data.Enums;
+    using Jellyfin.Data.Enums; 
+    using MediaBrowser.Model.Querying; 
+    using ItemSortBy = Jellyfin.Data.Enums.ItemSortBy;
+    using SortOrder = Jellyfin.Database.Implementations.Enums.SortOrder;
     using Jellyfin.Plugin.SubtitleSorter.Configuration;
     using MediaBrowser.Common.Configuration;
     using MediaBrowser.Common.Plugins;
@@ -72,7 +75,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
 
         private const string FormatterDirectory = "Directory";
         private const string FormatterName = "FileName";
-        private static readonly string[] _subtitleFileExtensions = [".ass", ".srt", ".ssa", ".sub", ".idx", ".vtt"];
+        private static readonly string[] _subtitleFileExtensions = new[] { ".ass", ".srt", ".ssa", ".sub", ".idx", ".vtt" };
 
         /// <summary>
         /// Gets or sets the current plugin instance.
@@ -93,7 +96,14 @@ namespace Jellyfin.Plugin.SubtitleSorter
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
         {
-            return [new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace) }];
+            return new[]
+            {
+                new PluginPageInfo
+                {
+                    Name = this.Name,
+                    EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace)
+                }
+            };
         }
 
         /// <inheritdoc />
@@ -115,8 +125,9 @@ namespace Jellyfin.Plugin.SubtitleSorter
                 _logger.LogDebug("Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
             }
 
-            foreach (var filter in filters)
+            for (int filterIndex = 0; filterIndex < filters.Count; filterIndex++)
             {
+                var filter = filters[filterIndex];
                 _logger.LogDebug("Running Filter | Enabled: {Enabled} Identifier: {Identifier} LocationFilter: {Loc}", filter.Enabled, filter.Identifier, filter.LocationFilter);
 
                 BaseItemKind queryType;
@@ -137,7 +148,18 @@ namespace Jellyfin.Plugin.SubtitleSorter
                         continue;
                 }
 
-                InternalItemsQuery query = new InternalItemsQuery { IncludeItemTypes = [queryType], IsVirtualItem = false, OrderBy = new List<(ItemSortBy, SortOrder)> { (ItemSortBy.SortName, SortOrder.Ascending) }, Recursive = true };
+                // Build query using enums (correct typing for Jellyfin 10.11+)
+                InternalItemsQuery query = new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { queryType },
+                    IsVirtualItem = false,
+                    OrderBy = new (ItemSortBy, SortOrder)[]
+                    {
+                        (ItemSortBy.SortName, SortOrder.Ascending)
+                        // or SortOrder.Descending
+                    },
+                    Recursive = true
+                };
 
                 var allItems = _libraryManager.GetItemList(query, false).Select(m => m).ToList();
 
@@ -157,13 +179,13 @@ namespace Jellyfin.Plugin.SubtitleSorter
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e);
-                        throw;
+                        _logger.LogError(e, "Exception while running sorter for item {Item}", item.Name);
                     }
                 }
 
-                // calc percentage (current / maximum) * 100
-                progress.Report((filters.IndexOf(filter) / filters.Count) * 100);
+                // calc percentage (current / maximum) * 100 -- use double to avoid integer division
+                double percent = ((double)filterIndex / (double)Math.Max(filters.Count, 1)) * 100.0;
+                progress.Report(percent);
             }
 
             return Task.CompletedTask;
@@ -173,13 +195,14 @@ namespace Jellyfin.Plugin.SubtitleSorter
         {
             try
             {
+                // If OS supports symlinks, create; otherwise fall back to copy (CreateSymbolicLink may throw PlatformNotSupportedException or IOException)
                 File.CreateSymbolicLink(newFilePath, fileToCopy);
                 _logger.LogDebug("Linked subtitle file [{Current}] to [{New}]", fileToCopy, newFilePath);
             }
             catch (Exception ex)
             {
                 // Try copy file if symbolic link creation fails
-                if (ex.GetType().IsAssignableFrom(typeof(IOException)))
+                if (ex is IOException || ex is PlatformNotSupportedException || ex is UnauthorizedAccessException)
                 {
                     try
                     {
@@ -188,12 +211,12 @@ namespace Jellyfin.Plugin.SubtitleSorter
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(ex, "Error copying subtitle file {File}. Error: {Error}", fileToCopy, e.ToString());
+                        _logger.LogError(e, "Error copying subtitle file {File}.", fileToCopy);
                     }
                 }
                 else
                 {
-                    _logger.LogError(ex, "Error creating subtitle symbolic link {Link}. Error: {Error}", fileToCopy, ex.ToString());
+                    _logger.LogError(ex, "Error creating subtitle symbolic link {Link}.", fileToCopy);
                 }
             }
         }
@@ -210,7 +233,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
 
             // Process Location Filter
             string subtitlesLocation = filter.LocationFilter;
-            subtitlesLocation = subtitlesLocation.Replace("{" + FormatterDirectory + "}", Path.GetDirectoryName(item.Path), StringComparison.Ordinal);
+            subtitlesLocation = subtitlesLocation.Replace("{" + FormatterDirectory + "}", Path.GetDirectoryName(item.Path) ?? string.Empty, StringComparison.Ordinal);
             subtitlesLocation = subtitlesLocation.Replace("{" + FormatterName + "}", item.FileNameWithoutExtension, StringComparison.Ordinal);
 
             if (!_fileSystem.DirectoryExists(subtitlesLocation))
@@ -232,7 +255,7 @@ namespace Jellyfin.Plugin.SubtitleSorter
             List<FileSystemMetadata> subtitleFiles = new List<FileSystemMetadata>();
             foreach (var file in folderFiles)
             {
-                if (_subtitleFileExtensions.Contains(file.Extension))
+                if (_subtitleFileExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase))
                 {
                     subtitleFiles.Add(file);
                 }
@@ -240,7 +263,8 @@ namespace Jellyfin.Plugin.SubtitleSorter
 
             foreach (var subFile in subtitleFiles)
             {
-                string newSubFile = Path.Join(Path.GetDirectoryName(item.Path), Path.GetFileNameWithoutExtension(item.Path)) + "." + subFile.Name;
+                // subFile.Name probably includes the extension, ensure newSubFile is correct
+                string newSubFile = Path.Combine(Path.GetDirectoryName(item.Path) ?? string.Empty, Path.GetFileNameWithoutExtension(item.Path) + Path.GetExtension(subFile.Name));
                 if (_fileSystem.FileExists(newSubFile))
                 {
                     continue;
